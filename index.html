@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>انفوجرافيك مجسم تفاعلي - أنواع المواد وخصائصها</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Tajawal', sans-serif;
+            background-color: #080d1a;
+            color: #f1f5f9;
+            overflow-x: hidden;
+        }
+        .glass-card {
+            background: rgba(15, 23, 42, 0.82);
+            backdrop-filter: blur(14px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .glass-panel {
+            background: rgba(11, 19, 41, 0.9);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(6, 182, 212, 0.25);
+        }
+        .concept-btn {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .concept-btn.active {
+            border-color: #06b6d4;
+            background: rgba(6, 182, 212, 0.2);
+            box-shadow: 0 0 15px rgba(6, 182, 212, 0.35);
+            transform: translateX(-3px);
+        }
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+            min-height: 420px;
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #080d1a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #06b6d4;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-cyan-500 selection:text-white">
+
+    <!-- School & Header Banner -->
+    <header class="glass-card sticky top-0 z-50 border-b border-slate-800 p-4 shadow-2xl">
+        <div class="max-w-7xl mx-auto flex flex-col gap-3">
+            
+            <!-- School Name - Center Top -->
+            <div class="text-center pb-2 border-b border-slate-800/80">
+                <h1 class="text-xl md:text-2xl font-black text-cyan-400 tracking-wide">
+                     انفوجرافيك مجسم تفاعلي - أنواع المواد وخصائصها
+                </h1>
+            </div>
+
+            <!-- Left & Right Details Row -->
+            <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                
+                <!-- Right Side Info -->
+                <div class="text-right space-y-0.5">
+                    <div class="flex items-center gap-2">
+                        <span class="bg-cyan-950 text-cyan-300 text-xs font-bold px-2.5 py-0.5 rounded-full border border-cyan-800">📘 الصف الخامس الأساسي</span>
+                        <span class="bg-indigo-950 text-indigo-300 text-xs font-bold px-2.5 py-0.5 rounded-full border border-indigo-800">🔬 العلوم والحياة</span>
+                    </div>
+                </div>
+
+                <!-- Center Title & Speech Toggle -->
+                <div class="flex items-center gap-3">
+                    <button id="toggle-speech-btn" onclick="toggleSpeech()" class="px-4 py-2 rounded-xl text-xs md:text-sm font-bold bg-cyan-600 hover:bg-cyan-500 text-white flex items-center gap-2 transition shadow-lg hover:shadow-cyan-500/20">
+                        <span id="speech-icon">🔊</span> <span id="speech-text">قراءة المفهوم بصوت ناطق</span>
+                    </button>
+                </div>
+
+                <!-- Left Side Info -->
+                <div class="text-left space-y-0.5 md:text-left text-center">
+                    <p class="text-xs font-bold text-slate-300">الوحدة الثانية: خصائص المادة</p>
+                    <p class="text-[11px] text-cyan-400 font-semibold">الدرس الأول: أنواع المادة وخصائصها</p>
+                </div>
+
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl w-full mx-auto p-4 md:p-6 flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- Left Column: 3D Canvas & Visual Display (7 cols) -->
+        <div class="lg:col-span-7 flex flex-col gap-4">
+            
+            <!-- 3D Viewport Box -->
+            <div class="relative glass-card rounded-3xl overflow-hidden shadow-2xl border border-slate-700/60 flex-1 flex flex-col min-h-[440px]">
+                
+                <!-- Overlay Header Badge -->
+                <div class="absolute top-4 right-4 z-10 flex flex-wrap gap-2 items-center">
+                    <span id="concept-badge" class="bg-cyan-950/90 text-cyan-300 border border-cyan-500/40 px-3.5 py-1.5 rounded-full text-xs font-bold shadow-lg">
+                        🔮 مجسم المفهوم: المادة
+                    </span>
+                    <span class="bg-slate-900/80 text-slate-300 border border-slate-700 px-3 py-1.5 rounded-full text-[11px]">
+                        🖱️ اسحب للتدوير | عجلة الماوس للتكبير
+                    </span>
+                </div>
+
+                <!-- Three.js Canvas Element -->
+                <div id="canvas-container" class="w-full flex-1"></div>
+
+                <!-- Dynamic 3D Control Bar -->
+                <div class="p-3 bg-slate-900/90 border-t border-slate-800/80 flex justify-between items-center text-xs text-slate-300">
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-full bg-cyan-400 animate-pulse"></span>
+                        <span id="particle-count-text">تجسيم تفاعلي ثلاثي الأبعاد</span>
+                    </div>
+                    <button onclick="resetCamera()" class="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition">
+                        🔄 إعادة ضبط المشهد
+                    </button>
+                </div>
+            </div>
+
+            <!-- Explanatory Details Box -->
+            <div class="glass-panel p-5 rounded-2xl border border-cyan-500/30 space-y-3">
+                <div class="flex items-center justify-between">
+                    <h2 id="concept-title" class="text-xl font-black text-cyan-300 flex items-center gap-2">
+                        <span>1️⃣</span> المادة (Matter)
+                    </h2>
+                    <span id="concept-category" class="text-xs bg-slate-800 text-cyan-400 font-bold px-3 py-1 rounded-full border border-slate-700">
+                        التعريف الأساسي
+                    </span>
+                </div>
+                <p id="concept-desc" class="text-sm text-slate-200 leading-relaxed font-medium">
+                    هي كل ما له كتلة وحجم (أو يشغل حيزاً في الفراغ). تشمل جميع الأشياء من حولنا سواء كانت صلبة أو سائلة أو غازية.
+                </p>
+                <div id="concept-examples" class="bg-slate-900/80 p-3 rounded-xl border border-slate-800 text-xs text-slate-300 space-y-1">
+                    <strong class="text-cyan-400 block">📌 أمثلة وتطبيقات عمليّة:</strong>
+                    <span id="examples-text">الهواء، الماء، الصخور، السكر، والمعادن.</span>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Right Column: Interactive 19 Concepts Scrollable List (5 cols) -->
+        <div class="lg:col-span-5 flex flex-col gap-3 max-h-[820px] overflow-y-auto pr-1">
+            
+            <div class="border-r-4 border-cyan-500 pr-3 mb-1 sticky top-0 bg-slate-950/90 py-2 backdrop-blur-md z-20">
+                <h3 class="font-bold text-md text-slate-100">💡 المفاهيم الـعلمية:</h3>
+                <p class="text-xs text-slate-400">انقر على أي مفهوم لمشاهدة مجسمه وشرحه</p>
+            </div>
+
+            <div class="space-y-2" id="concepts-list-container">
+                <!-- Dynamically generated or static buttons for all 19 concepts -->
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer with Teacher Name -->
+    <footer class="glass-card border-t border-slate-800 p-4 text-center text-xs text-slate-300 mt-4">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2">
+            <span>مادة العلوم والحياة - الصف الخامس الأساسي © 2026</span>
+            <span class="text-cyan-400 font-bold text-sm bg-cyan-950/80 px-4 py-1 rounded-xl border border-cyan-800">
+                إعداد المعلم: أ. أمين عبدالرازق
+            </span>
+            <span>مدرسة ذكور طمون الأساسية العليا</span>
+        </div>
+    </footer>
+
+    <script>
+        // Data for ALL 19 concepts
+        const conceptsData = {
+            1: {
+                title: "1️⃣ المادة (Matter)",
+                category: "أساسيات المادة",
+                desc: "كل ما له كتلة ويشغل حيزاً من الفراغ (له حجم). توجد في ثلاث حالات رئيسية: صلبة، سائلة، وغازية.",
+                examples: "الماء، الهواء، الخشب، المعادن، جسم الإنسان.",
+                badge: "🔮 مجسم: مكعب صلب متماسك ذو كتلة وحجم",
+                speech: "المادة هي كل ما له كتلة ويشغل حيزاً من الفراغ."
+            },
+            2: {
+                title: "2️⃣ الكتلة (Mass)",
+                category: "الخصائص الفيزيائية",
+                desc: "مقدار ما يحتويه الجسم من مادة، وهي قيمة ثابتة لا تتغير بتغير المكان أو الحالة.",
+                examples: "كتلة كتاب تساوي 500 غرام، كتلة صخرة تقاس بالكيلوغرام.",
+                badge: "🔮 مجسم: ميزان ذو كفتين لقياس الكتلة",
+                speech: "الكتلة هي مقدار ما يحتويه الجسم من مادة."
+            },
+            3: {
+                title: "3️⃣ الحجم (Volume)",
+                category: "الخصائص الفيزيائية",
+                desc: "مقدار الحيز الذي يشغله الجسم في الفراغ. يقاس باللتر أو المليلتر للسوائل، وبالسنتيمتر المكعب للأجسام الصلبة.",
+                examples: "حجم العصير 250 مل، حجم صندوق صلب.",
+                badge: "🔮 مجسم: مخبار مدرج يحتوي على سائل",
+                speech: "الحجم هو مقدار الحيز الذي يشغله الجسم في الفراغ."
+            },
+            4: {
+                title: "4️⃣ المادة النقية (Pure Substance)",
+                category: "تصنيف المادة",
+                desc: "مادة تتكون من نوع واحد فقط من الدقائق أو الجسيمات المتشابهة تماماً في خصائصها الكيميائية والفيزيائية.",
+                examples: "السكر النقي، برادة الألومنيوم، الذهب الخالص، الماء المقطر.",
+                badge: "🔮 مجسم: جزيئات متطابقة متراصة بانتظام",
+                speech: "المادة النقية تتكون من نوع واحد فقط من الدقائق المتشابهة تماماً."
+            },
+            5: {
+                title: "5️⃣ المادة غير النقية (Impure Substance)",
+                category: "تصنيف المادة",
+                desc: "مادة تتكون من دقائق وجسيمات لـ نوعين أو أكثر من المواد المختلفة المخلوطة معاً بنسب مختلفة.",
+                examples: "خلط السكر مع برادة الألومنيوم، ماء البحر، الهواء الجوي.",
+                badge: "🔮 مجسم: دقائق متنوعة الأشكال والألوان مخوطة",
+                speech: "المادة غير النقية تتكون من نوعين أو أكثر من الدقائق المختلفة المخلوطة."
+            },
+            6: {
+                title: "6️⃣ المخلوط (Mixture)",
+                category: "المخاليط",
+                desc: "مادة ناتجة عن خلط مادتين أو أكثر دون حدوث تفاعل كيميائي، وتستمر كل مادة بالاحتفاظ بخصائصها الأصلية وتسهل فصلها.",
+                examples: "مخلوط الأرز وبرادة الحديد، المكسرات المشكلة.",
+                badge: "🔮 مجسم: وعاء يجمع عناصر متعددة دون اتحاد",
+                speech: "المخلوط ناتج عن خلط مادتين أو أكثر دون حدوث تفاعل كيميائي بينها."
+            },
+            7: {
+                title: "7️⃣ المخلوط المتجانس (Homogeneous Mixture)",
+                category: "أنواع المخاليط",
+                desc: "مخلوط تمتزج فيه المكونات بانتظام وبشكل كامل بحيث لا يمكن التمييز بين أجزائه بالعين المجردة.",
+                examples: "محلول السكر في الماء، المحلول نمحي، الهواء.",
+                badge: "🔮 مجسم: توزيع جزيئي منتظم وموحد",
+                speech: "المخلوط المتجانس تمتزج مكوناته بانتظام ولا يمكن التمييز بينها بالعين."
+            },
+            8: {
+                title: "8️⃣ المخلوط غير المتجانس (Heterogeneous Mixture)",
+                category: "أنواع المخاليط",
+                desc: "مخلوط لا تتوزع مكوناته بانتظام، ويمكن بسهولة التمييز بين مكوناته المختلفة بالعين المجردة.",
+                examples: "مخلوط الزيت والماء، الرمل والماء، السلطة.",
+                badge: "🔮 مجسم: طبقات منفصلة غير ممتزجة (مثل الزيت والماء)",
+                speech: "المخلوط غير المتجانس لا تتوزع مكوناته بانتظام ويمكن التمييز بين أجزائه."
+            },
+            9: {
+                title: "9️⃣ المحلول (Solution)",
+                category: "المخاليط المتجانسة",
+                desc: "نوع خاص من المخاليط المتجانسة يتكون من مادتين: مذيب ومذاب وتتوزع فيه دقائق المذاب بانتظام في المذيب.",
+                examples: "محلول ملح الطعام في الماء، الشاي.",
+                badge: "🔮 مجسم: جزيئات المذاب تتخلل جزيئات المذيب",
+                speech: "المحلول هو مخلوط متجانس يتكون من مذيب ومذاب."
+            },
+            10: {
+                title: "🔟 المذاب (Solute)",
+                category: "عناصر المحلول",
+                desc: "المادة التي تذوب وتتفكك دقائقها داخل المذيب وتكون كميتها في المحلول هي الأقل.",
+                examples: "السكر، الملح، مسحوق العصير.",
+                badge: "🔮 مجسم: بلورات صلبة صغيرة تذوب",
+                speech: "المذاب هو المادة التي تذوب وتتفكك داخل المذيب وتكون بكمية أقل."
+            },
+            11: {
+                title: "11️⃣ المذيب (Solvent)",
+                category: "عناصر المحلول",
+                desc: "المادة التي تقوم بتفكيك وتذويب المذاب فيها وتكون كميتها هي الأكبر في المحلول (الماء هو المذيب العام).",
+                examples: "الماء، الكحول، البنزين.",
+                badge: "🔮 مجسم: سائل محيط ومفكك لدقائق المذاب",
+                speech: "المذيب هو المادة التي تذوب المذاب وتكون كميتها أكبر في المحلول."
+            },
+            12: {
+                title: "12️⃣ السبيكة / السبائك (Alloys)",
+                category: "المخاليط الصلبة",
+                desc: "مخاليط صلبة متجانسة تنتج عن صهر مادتين أو أكثر (غالباً معادن) معاً وتبريدها لإكسابها صفات جديدة ممتازة كالصلابة ومقاومة الصدأ.",
+                examples: "الفولاذ (حديد وكربون)، البرونز، الذهب المستخدم في الحلي.",
+                badge: "🔮 مجسم: شبكة بلورية معدنية صلبة ومندمجة",
+                speech: "السبائك مخاليط صلبة متجانسة تنتج عن صهر ومعالجة المعادن لإكسابها صفات جديدة."
+            },
+            13: {
+                title: "13️⃣ الذرة (Atom)",
+                category: "تركيب المادة",
+                desc: "وحدة البناء الأساسية والصغرى للمادة، والتي تدخل في تركيب العناصر والمركبات.",
+                examples: "ذرة النحاس (Cu)، ذرة الهيدروجين (H)، ذرة الأكسجين (O).",
+                badge: "🔮 مجسم: نواة مركزية مع إلكترونات تدور في مدارات",
+                speech: "الذرة هي وحدة البناء الأساسية والصغرى للمادة."
+            },
+            14: {
+                title: "14️⃣ العنصر (Element)",
+                category: "المواد النقية",
+                desc: "مادة نقية تتكون من نوع واحد فقط من الذرات المتشابهة، ولا يمكن تجزئتها إلى مواد أبسط منها بالطرق الكيميائية العادية.",
+                examples: "النحاس، الأكسجين، الذهب، الحديد، الألومنيوم.",
+                badge: "🔮 مجسم: مجموعة ذرات متطابقة متجمعة",
+                speech: "العنصر مادة نقية تتكون من نوع واحد من الذرات المتشابهة."
+            },
+            15: {
+                title: "15️⃣ المركب (Compound)",
+                category: "المواد النقية",
+                desc: "مادة نقية تنتج عن اتحاد عنصرين أو أكثر اتحاداً كيميائياً بنسب وزنية ثابتة وتنتج عنها صفات جديدة تختلف تماماً عن صفات عناصرها.",
+                examples: "الماء (H2O)، ملح الطعام (كلوريد الصوديوم NaCl)، ثاني أكسيد الكربون.",
+                badge: "🔮 مجسم: جزيء مركب بروابط كيميائية بين ذرات مختلفة",
+                speech: "المركب مادة نقية تنتج من اتحاد عنصرين أو أكثر بنسب ثابتة."
+            },
+            16: {
+                title: "16️⃣ التفاعل الكيميائي (Chemical Reaction)",
+                category: "التغيرات الكيميائية",
+                desc: "عملية تحول يتم فيها كسر روابط بين جزيئات المواد المتفاعلة وتكوين روابط جديدة ينتج عنها مواد جديدة بصفات جديدة.",
+                examples: "صدأ الحديد، احتراق الخشب، اتحاد الصوديوم والكلور.",
+                badge: "🔮 مجسم: إعادة تشكيل الروابط بين الذرات",
+                speech: "التفاعل الكيميائي هو إعادة ترتيب وتشكيل روابط بين الذرات لإنتاج مواد جديدة."
+            },
+            17: {
+                title: "17️⃣ التغير الفيزيائي (Physical Change)",
+                category: "تغيرات المادة",
+                desc: "تغير يطرأ على شكل المادة أو حالتها دون أن يغير في تركيبها الكيميائي أو ينشئ مواد جديدة.",
+                examples: "انصهار الجليد، تقطيع الخشب، ذوبان السكر في الماء.",
+                badge: "🔮 مجسم: تحول الحالة من صلبة إلى سائلة دون تغيير الجزيء",
+                speech: "التغير الفيزيائي يغير شكل المادة أو حالتها دون تغيير تركيبها الأصلي."
+            },
+            18: {
+                title: "18️⃣ الفصل الفيزيائي (Physical Separation)",
+                category: "فصل المخاليط",
+                desc: "طرق تستخدم لفصل مكونات المخاليط اعتماداً على الاختلاف في الخواص الفيزيائية لمكوناتها دون تغيير كيميائي.",
+                examples: "الفصل بالمغناطيس، الترشيح، التبخير، الترويق.",
+                badge: "🔮 مجسم: مغناطيس يجذب برادة الحديد بفصلها عن الرمل",
+                speech: "الفصل الفيزيائي هو استخدام الطرق الفيزيائية لفصل مكونات المخاليط."
+            },
+            19: {
+                title: "19️⃣ الكثافة (Density)",
+                category: "الخصائص الفيزيائية",
+                desc: "كتلة وحدة الحجوم من المادة (الكثافة = الكتلة ÷ الحجم)، وتحدد طفو أو غوص المواد في السوائل.",
+                examples: "طفو الخشب والزيت فوق الماء وغوص الحديد في الماء.",
+                badge: "🔮 مجسم: كرات تطفو وأخرى تغوص حسب الكثافة",
+                speech: "الكثافة هي كتلة وحدة الحجوم من المادة وتحدد طفو وغوص المواد."
+            }
+        };
+
+        let scene, camera, renderer, controls;
+        let currentMeshGroup;
+        let isSpeaking = false;
+        let currentConceptId = 1;
+
+        // Render Concept Sidebar Buttons
+        function buildSidebarMenu() {
+            const container = document.getElementById('concepts-list-container');
+            container.innerHTML = '';
+
+            for (let id = 1; id <= 19; id++) {
+                const item = conceptsData[id];
+                const btn = document.createElement('button');
+                btn.id = `btn-concept-${id}`;
+                btn.onclick = () => selectConcept(id);
+                btn.className = `concept-btn w-full text-right p-3 rounded-2xl glass-card hover:bg-slate-800/80 transition flex items-center justify-between border border-slate-800/80 ${id === 1 ? 'active' : ''}`;
+
+                btn.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <span class="w-7 h-7 rounded-xl bg-cyan-950 border border-cyan-700 flex items-center justify-center font-bold text-cyan-400 text-xs shrink-0">${id}</span>
+                        <div>
+                            <h4 class="font-bold text-xs md:text-sm text-slate-100">${item.title.split(' ')[1] || item.title}</h4>
+                            <p class="text-[10px] text-slate-400 line-clamp-1">${item.desc}</p>
+                        </div>
+                    </div>
+                    <span class="text-slate-500 text-[11px] shrink-0">🔍 عرض</span>
+                `;
+                container.appendChild(btn);
+            }
+        }
+
+        // Initialize Three.js Scene
+        function initThreeJS() {
+            const container = document.getElementById('canvas-container');
+
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x080d1a);
+
+            camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.set(0, 4, 8);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            container.appendChild(renderer.domElement);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+
+            // Lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+            scene.add(ambientLight);
+
+            const dirLight1 = new THREE.DirectionalLight(0x06b6d4, 1.2);
+            dirLight1.position.set(5, 10, 7);
+            scene.add(dirLight1);
+
+            const dirLight2 = new THREE.DirectionalLight(0x818cf8, 0.8);
+            dirLight2.position.set(-5, -5, -5);
+            scene.add(dirLight2);
+
+            currentMeshGroup = new THREE.Group();
+            scene.add(currentMeshGroup);
+
+            // Build initial 3D model
+            buildModelForConcept(1);
+
+            window.addEventListener('resize', onWindowResize);
+            animate();
+        }
+
+        // 3D Models for each of the 19 concepts
+        function buildModelForConcept(id) {
+            while(currentMeshGroup.children.length > 0){ 
+                const obj = currentMeshGroup.children[0];
+                currentMeshGroup.remove(obj); 
+            }
+
+            if (id === 1) { // Matter
+                const geometry = new THREE.BoxGeometry(2, 2, 2);
+                const material = new THREE.MeshStandardMaterial({ color: 0x06b6d4, roughness: 0.2, metalness: 0.6 });
+                const cube = new THREE.Mesh(geometry, material);
+                currentMeshGroup.add(cube);
+
+                const wireFrameGeo = new THREE.BoxGeometry(2.3, 2.3, 2.3);
+                const wireMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, wireframe: true });
+                currentMeshGroup.add(new THREE.Mesh(wireFrameGeo, wireMat));
+
+            } else if (id === 2) { // Mass (Balance Scale)
+                const baseGeo = new THREE.CylinderGeometry(1.2, 1.5, 0.2, 32);
+                const baseMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.8 });
+                currentMeshGroup.add(new THREE.Mesh(baseGeo, baseMat));
+
+                const pillarGeo = new THREE.CylinderGeometry(0.1, 0.1, 2.5);
+                const pillar = new THREE.Mesh(pillarGeo, baseMat);
+                pillar.position.y = 1.25;
+                currentMeshGroup.add(pillar);
+
+                const beamGeo = new THREE.BoxGeometry(2.8, 0.1, 0.1);
+                const beam = new THREE.Mesh(beamGeo, baseMat);
+                beam.position.y = 2.4;
+                currentMeshGroup.add(beam);
+
+                // Pan Left & Right
+                [-1.3, 1.3].forEach(x => {
+                    const panGeo = new THREE.CylinderGeometry(0.6, 0.1, 0.2, 16);
+                    const pan = new THREE.Mesh(panGeo, baseMat);
+                    pan.position.set(x, 1.5, 0);
+                    currentMeshGroup.add(pan);
+
+                    const weightGeo = new THREE.SphereGeometry(0.3, 16, 16);
+                    const weightMat = new THREE.MeshStandardMaterial({ color: x < 0 ? 0x06b6d4 : 0x38bdf8 });
+                    const weight = new THREE.Mesh(weightGeo, weightMat);
+                    weight.position.set(x, 1.8, 0);
+                    currentMeshGroup.add(weight);
+                });
+
+            } else if (id === 3) { // Volume (Graduated Cylinder with liquid)
+                const cylGeo = new THREE.CylinderGeometry(0.8, 0.8, 3, 32, 1, true);
+                const cylMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, transparent: true, opacity: 0.4 });
+                currentMeshGroup.add(new THREE.Mesh(cylGeo, cylMat));
+
+                const liquidGeo = new THREE.CylinderGeometry(0.75, 0.75, 1.8, 32);
+                const liquidMat = new THREE.MeshStandardMaterial({ color: 0x0284c7, transparent: true, opacity: 0.7 });
+                const liquid = new THREE.Mesh(liquidGeo, liquidMat);
+                liquid.position.y = -0.5;
+                currentMeshGroup.add(liquid);
+
+            } else if (id === 4) { // Pure Substance
+                for (let x = -1; x <= 1; x += 0.8) {
+                    for (let y = -1; y <= 1; y += 0.8) {
+                        for (let z = -1; z <= 1; z += 0.8) {
+                            const geo = new THREE.SphereGeometry(0.25, 16, 16);
+                            const mat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, metalness: 0.5 });
+                            const sphere = new THREE.Mesh(geo, mat);
+                            sphere.position.set(x, y, z);
+                            currentMeshGroup.add(sphere);
+                        }
+                    }
+                }
+
+            } else if (id === 5) { // Impure Substance
+                const colors = [0x06b6d4, 0xf43f5e, 0xeab308, 0xa855f7];
+                for (let i = 0; i < 40; i++) {
+                    const geo = i % 2 === 0 ? new THREE.SphereGeometry(0.2, 16, 16) : new THREE.BoxGeometry(0.3, 0.3, 0.3);
+                    const mat = new THREE.MeshStandardMaterial({ color: colors[i % colors.length] });
+                    const mesh = new THREE.Mesh(geo, mat);
+                    mesh.position.set((Math.random() - 0.5) * 3, (Math.random() - 0.5) * 3, (Math.random() - 0.5) * 3);
+                    currentMeshGroup.add(mesh);
+                }
+
+            } else if (id === 6) { // Mixture
+                for (let i = 0; i < 35; i++) {
+                    const isIron = i % 2 === 0;
+                    const geo = isIron ? new THREE.CylinderGeometry(0.08, 0.08, 0.4) : new THREE.SphereGeometry(0.18, 12, 12);
+                    const mat = new THREE.MeshStandardMaterial({ color: isIron ? 0x64748b : 0xfef08a });
+                    const mesh = new THREE.Mesh(geo, mat);
+                    mesh.position.set((Math.random() - 0.5) * 2.5, (Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2.5);
+                    currentMeshGroup.add(mesh);
+                }
+
+            } else if (id === 7) { // Homogeneous Mixture
+                for (let i = 0; i < 60; i++) {
+                    const geo = new THREE.SphereGeometry(0.12, 12, 12);
+                    const isSugar = i % 3 === 0;
+                    const mat = new THREE.MeshStandardMaterial({ 
+                        color: isSugar ? 0xffffff : 0x0284c7, 
+                        transparent: true, opacity: isSugar ? 0.9 : 0.5 
+                    });
+                    const mesh = new THREE.Mesh(geo, mat);
+                    mesh.position.set((Math.random() - 0.5) * 3, (Math.random() - 0.5) * 3, (Math.random() - 0.5) * 3);
+                    currentMeshGroup.add(mesh);
+                }
+
+            } else if (id === 8) { // Heterogeneous Mixture
+                for (let i = 0; i < 25; i++) {
+                    const geo = new THREE.SphereGeometry(0.2, 12, 12);
+                    const mat = new THREE.MeshStandardMaterial({ color: 0xeab308 });
+                    const mesh = new THREE.Mesh(geo, mat);
+                    mesh.position.set((Math.random() - 0.5) * 2.5, 0.6 + Math.random() * 0.8, (Math.random() - 0.5) * 2.5);
+                    currentMeshGroup.add(mesh);
+                }
+                for (let i = 0; i < 25; i++) {
+                    const geo = new THREE.SphereGeometry(0.2, 12, 12);
+                    const mat = new THREE.MeshStandardMaterial({ color: 0x0284c7 });
+                    const mesh = new THREE.Mesh(geo, mat);
+                    mesh.position.set((Math.random() - 0.5) * 2.5, -1.2 + Math.random() * 0.8, (Math.random() - 0.5) * 2.5);
+                    currentMeshGroup.add(mesh);
+                }
+
+            } else if (id === 9) { // Solution
+                const containerGeo = new THREE.CylinderGeometry(1.2, 1.2, 2.5, 32);
+                const containerMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.3 });
+                currentMeshGroup.add(new THREE.Mesh(containerGeo, containerMat));
+
+                for (let i = 0; i < 40; i++) {
+                    const geo = new THREE.SphereGeometry(0.1, 12, 12);
+                    const mat = new THREE.MeshStandardMaterial({ color: 0xf8fafc });
+                    const mesh = new THREE.Mesh(geo, mat);
+                    mesh.position.set((Math.random() - 0.5) * 1.8, (Math.random() - 0.5) * 1.8, (Math.random() - 0.5) * 1.8);
+                    currentMeshGroup.add(mesh);
+                }
+
+            } else if (id === 10) { // Solute
+                for (let i = 0; i < 15; i++) {
+                    const geo = new THREE.BoxGeometry(0.3, 0.3, 0.3);
+                    const mat = new THREE.MeshStandardMaterial({ color: 0xf1f5f9, roughness: 0.1 });
+                    const mesh = new THREE.Mesh(geo, mat);
+                    mesh.position.set((Math.random() - 0.5) * 1.5, (Math.random() - 0.5) * 1.5, (Math.random() - 0.5) * 1.5);
+                    currentMeshGroup.add(mesh);
+                }
+
+            } else if (id === 11) { // Solvent
+                for (let i = 0; i < 50; i++) {
+                    const geo = new THREE.SphereGeometry(0.15, 12, 12);
+                    const mat = new THREE.MeshStandardMaterial({ color: 0x0284c7, transparent: true, opacity: 0.6 });
+                    const mesh = new THREE.Mesh(geo, mat);
+                    mesh.position.set((Math.random() - 0.5) * 2.5, (Math.random() - 0.5) * 2.5, (Math.random() - 0.5) * 2.5);
+                    currentMeshGroup.add(mesh);
+                }
+
+            } else if (id === 12) { // Alloys
+                for (let x = -1; x <= 1; x += 0.7) {
+                    for (let y = -1; y <= 1; y += 0.7) {
+                        for (let z = -1; z <= 1; z += 0.7) {
+                            const isCarbon = (Math.abs(x + y + z) < 0.2);
+                            const geo = new THREE.SphereGeometry(isCarbon ? 0.15 : 0.28, 16, 16);
+                            const mat = new THREE.MeshStandardMaterial({ 
+                                color: isCarbon ? 0x1e293b : 0xd97706, 
+                                metalness: 0.9, roughness: 0.2 
+                            });
+                            const sphere = new THREE.Mesh(geo, mat);
+                            sphere.position.set(x, y, z);
+                            currentMeshGroup.add(sphere);
+                        }
+                    }
+                }
+
+            } else if (id === 13) { // Atom
+                const nucGeo = new THREE.SphereGeometry(0.6, 24, 24);
+                const nucMat = new THREE.MeshStandardMaterial({ color: 0xf43f5e, metalness: 0.3 });
+                currentMeshGroup.add(new THREE.Mesh(nucGeo, nucMat));
+
+                for(let r = 0; r < 2; r++) {
+                    const ringGeo = new THREE.TorusGeometry(1.5 + r * 0.8, 0.02, 16, 100);
+                    const ringMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+                    const ring = new THREE.Mesh(ringGeo, ringMat);
+                    ring.rotation.x = Math.PI / (2 + r);
+                    ring.rotation.y = r * 1.2;
+                    currentMeshGroup.add(ring);
+
+                    const eleGeo = new THREE.SphereGeometry(0.12, 12, 12);
+                    const eleMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+                    const electron = new THREE.Mesh(eleGeo, eleMat);
+                    electron.position.set(1.5 + r * 0.8, 0, 0);
+                    ring.add(electron);
+                }
+
+            } else if (id === 14) { // Element
+                for (let i = 0; i < 20; i++) {
+                    const geo = new THREE.SphereGeometry(0.25, 16, 16);
+                    const mat = new THREE.MeshStandardMaterial({ color: 0x10b981, metalness: 0.8 });
+                    const mesh = new THREE.Mesh(geo, mat);
+                    mesh.position.set((Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2);
+                    currentMeshGroup.add(mesh);
+                }
+
+            } else if (id === 15) { // Compound (Molecule)
+                const centerGeo = new THREE.SphereGeometry(0.7, 24, 24);
+                const centerMat = new THREE.MeshStandardMaterial({ color: 0x10b981 });
+                currentMeshGroup.add(new THREE.Mesh(centerGeo, centerMat));
+
+                [[1.2, 0.8, 0], [-1.2, -0.8, 0]].forEach(pos => {
+                    const subGeo = new THREE.SphereGeometry(0.45, 20, 20);
+                    const subMat = new THREE.MeshStandardMaterial({ color: 0x3b82f6 });
+                    const subMesh = new THREE.Mesh(subGeo, subMat);
+                    subMesh.position.set(pos[0], pos[1], pos[2]);
+                    currentMeshGroup.add(subMesh);
+
+                    const bondGeo = new THREE.CylinderGeometry(0.08, 0.08, 1.2);
+                    const bondMat = new THREE.MeshBasicMaterial({ color: 0x94a3b8 });
+                    const bond = new THREE.Mesh(bondGeo, bondMat);
+                    bond.position.set(pos[0]/2, pos[1]/2, pos[2]/2);
+                    bond.rotation.z = Math.atan2(pos[1], pos[0]) - Math.PI/2;
+                    currentMeshGroup.add(bond);
+                });
+
+            } else if (id === 16) { // Chemical Reaction
+                for (let i = 0; i < 12; i++) {
+                    const geo = new THREE.SphereGeometry(0.2, 16, 16);
+                    const mat = new THREE.MeshStandardMaterial({ color: i % 2 === 0 ? 0xf43f5e : 0x38bdf8 });
+                    const mesh = new THREE.Mesh(geo, mat);
+                    const angle = (i / 12) * Math.PI * 2;
+                    mesh.position.set(Math.cos(angle) * 1.5, Math.sin(angle) * 1.5, 0);
+                    currentMeshGroup.add(mesh);
+                }
+
+            } else if (id === 17) { // Physical Change
+                const cubeGeo = new THREE.BoxGeometry(1.5, 1.5, 1.5);
+                const cubeMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.8 });
+                currentMeshGroup.add(new THREE.Mesh(cubeGeo, cubeMat));
+
+            } else if (id === 18) { // Physical Separation (Magnet & Iron)
+                const magGeo = new THREE.TorusGeometry(1, 0.2, 16, 32, Math.PI);
+                const magMat = new THREE.MeshStandardMaterial({ color: 0xef4444, metalness: 0.7 });
+                const magnet = new THREE.Mesh(magGeo, magMat);
+                magnet.rotation.x = Math.PI / 2;
+                magnet.position.y = 0.8;
+                currentMeshGroup.add(magnet);
+
+                for(let i = 0; i < 15; i++) {
+                    const ironGeo = new THREE.SphereGeometry(0.1, 8, 8);
+                    const ironMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.9 });
+                    const iron = new THREE.Mesh(ironGeo, ironMat);
+                    iron.position.set((Math.random() - 0.5) * 1.5, -0.8 + (Math.random() - 0.5) * 0.4, (Math.random() - 0.5) * 1.5);
+                    currentMeshGroup.add(iron);
+                }
+
+            } else if (id === 19) { // Density (Floating vs Sinking)
+                // Water container
+                const containerGeo = new THREE.BoxGeometry(2.5, 2.5, 2.5);
+                const containerMat = new THREE.MeshStandardMaterial({ color: 0x0284c7, transparent: true, opacity: 0.3 });
+                currentMeshGroup.add(new THREE.Mesh(containerGeo, containerMat));
+
+                // Floating sphere (light density)
+                const lightGeo = new THREE.SphereGeometry(0.35, 16, 16);
+                const lightMat = new THREE.MeshStandardMaterial({ color: 0xfef08a });
+                const lightSphere = new THREE.Mesh(lightGeo, lightMat);
+                lightSphere.position.set(-0.5, 0.9, 0);
+                currentMeshGroup.add(lightSphere);
+
+                // Sinking sphere (heavy density)
+                const heavyGeo = new THREE.SphereGeometry(0.35, 16, 16);
+                const heavyMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.9 });
+                const heavySphere = new THREE.Mesh(heavyGeo, heavyMat);
+                heavySphere.position.set(0.5, -0.9, 0);
+                currentMeshGroup.add(heavySphere);
+            }
+        }
+
+        function selectConcept(id) {
+            currentConceptId = id;
+
+            document.querySelectorAll('.concept-btn').forEach(btn => btn.classList.remove('active'));
+            const activeBtn = document.getElementById(`btn-concept-${id}`);
+            if (activeBtn) activeBtn.classList.add('active');
+
+            const data = conceptsData[id];
+
+            document.getElementById('concept-title').innerText = data.title;
+            document.getElementById('concept-category').innerText = data.category;
+            document.getElementById('concept-desc').innerText = data.desc;
+            document.getElementById('examples-text').innerText = data.examples;
+            document.getElementById('concept-badge').innerText = data.badge;
+
+            buildModelForConcept(id);
+
+            if (isSpeaking) {
+                speakConcept(data.speech);
+            }
+        }
+
+        function toggleSpeech() {
+            if (isSpeaking) {
+                window.speechSynthesis.cancel();
+                isSpeaking = false;
+                document.getElementById('speech-text').innerText = "قراءة المفهوم بصوت ناطق";
+                document.getElementById('speech-icon').innerText = "🔊";
+            } else {
+                isSpeaking = true;
+                document.getElementById('speech-text').innerText = "إيقاف الصوت";
+                document.getElementById('speech-icon').innerText = "⏹️";
+                speakConcept(conceptsData[currentConceptId].speech);
+            }
+        }
+
+        function speakConcept(text) {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'ar-SA';
+            utterance.rate = 0.9;
+            utterance.onend = () => {
+                isSpeaking = false;
+                document.getElementById('speech-text').innerText = "قراءة المفهوم بصوت ناطق";
+                document.getElementById('speech-icon').innerText = "🔊";
+            };
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function resetCamera() {
+            camera.position.set(0, 4, 8);
+            controls.reset();
+        }
+
+        function onWindowResize() {
+            const container = document.getElementById('canvas-container');
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+
+            if (currentMeshGroup) {
+                currentMeshGroup.rotation.y += 0.005;
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        window.onload = function() {
+            buildSidebarMenu();
+            initThreeJS();
+        };
+    </script>
+</body>
+</html>
